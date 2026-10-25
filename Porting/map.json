@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "package": "swift-ai-elevenlabs",
+  "status": "coarse-import",
+  "upstream": [
+    {
+      "name": "@ai-sdk/elevenlabs",
+      "implementation": [
+        "packages/elevenlabs/src"
+      ],
+      "tests": [
+        "packages/elevenlabs/src/elevenlabs-error.test.ts",
+        "packages/elevenlabs/src/elevenlabs-speech-model.test.ts",
+        "packages/elevenlabs/src/elevenlabs-speech-stream.test.ts",
+        "packages/elevenlabs/src/elevenlabs-transcription-model.test.ts",
+        "packages/elevenlabs/src/lazy-schemas.test.ts"
+      ]
+    }
+  ],
+  "swift": {
+    "sources": [
+      "Sources/SwiftAIElevenLabs/ElevenLabsAudioModels.swift",
+      "Sources/SwiftAIElevenLabs/ElevenLabsExtendedAudioModels.swift",
+      "Sources/SwiftAIElevenLabs/ElevenLabsProvider.swift",
+      "Sources/SwiftAIElevenLabs/ElevenLabsStreamingSpeechModel.swift",
+      "Sources/SwiftAIElevenLabs/ElevenLabsTranscriptionParsing.swift"
+    ],
+    "tests": [
+      "Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
+      "Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",
+      "Tests/SwiftAIElevenLabsTests/SpeechSocketTestSupport.swift",
+      "Tests/SwiftAIElevenLabsTests/TestSupport.swift",
+      "Tests/SwiftAIElevenLabsTests/WeeklyElevenLabs20261025Tests.swift"
+    ],
+    "resources": []
+  },
+  "differences": [
+    {
+      "kind": "native-adaptation",
+      "reason": "Preserve Swift async/await, Sendable, Foundation transport and existing documented gaps; see Docs/CoreV6Parity.md and PortingStatus.md."
+    }
+  ],
+  "reviewNote": "M6: provider runtime, configuration and focused tests extracted. Existing upstream baseline, capability boundaries and gaps retained.",
+  "canonicalOnlyReferences": [],
+  "canonicalDirectory": "Packages/swift-ai-elevenlabs"
+}

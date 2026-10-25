@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "package": "swift-ai-elevenlabs",
+  "status": "coarse-import",
+  "upstream": [
+    {
+      "name": "@ai-sdk/elevenlabs",
+      "implementation": [
+        "packages/elevenlabs/src"
+      ],
+      "tests": [
+        "packages/elevenlabs/src/elevenlabs-error.test.ts",
+        "packages/elevenlabs/src/elevenlabs-speech-model.test.ts",
+        "packages/elevenlabs/src/elevenlabs-speech-stream.test.ts",
+        "packages/elevenlabs/src/elevenlabs-transcription-model.test.ts",
+        "packages/elevenlabs/src/lazy-schemas.test.ts"
+      ]
+    }
+  ],
+  "swift": {
+    "sources": [
+      "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsAudioModels.swift",
+      "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsExtendedAudioModels.swift",
+      "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsProvider.swift",
+      "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsStreamingSpeechModel.swift",
+      "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsTranscriptionParsing.swift"
+    ],
+    "tests": [
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/SpeechSocketTestSupport.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/TestSupport.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/WeeklyElevenLabs20261025Tests.swift"
+    ],
+    "resources": []
+  },
+  "differences": [
+    {
+      "kind": "native-adaptation",
+      "reason": "Preserve Swift async/await, Sendable, Foundation transport and existing documented gaps; see Docs/CoreV6Parity.md and PortingStatus.md."
+    }
+  ],
+  "reviewNote": "M6: provider runtime, configuration and focused tests extracted. Existing upstream baseline, capability boundaries and gaps retained."
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "name": "@ai-sdk/elevenlabs",
+      "reviewedVersion": "3.0.71",
+      "ledgerKind": "provider",
+      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`",
+      "reviewStatus": "imported-reviewed-with-gaps",
+      "archiveIntegrity": "sha512-i78fhytpqD171BJIlJeGD22xjt3soiP5OR/V0zoPKxn1Y+E2ByCeMkJ6wXtzO/qcHPtwHf7AizKwfIfPFEOn5Q==",
+      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.71",
+      "testRef": "682e2dd71456f14f9da33a1b983d1998c3a1184c",
+      "testRefRelationship": "inventory-snapshot-not-release-verified",
+      "contractFamilies": [],
+      "contractReview": "not-imported; inspect upstream declarations before extraction"
+    }
+  ]
+}

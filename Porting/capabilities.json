@@ -1,0 +1,20 @@
+[
+  {
+    "order": 17,
+    "providerID": "elevenlabs",
+    "upstreamPackage": "@ai-sdk/elevenlabs",
+    "factoryNames": [
+      "AIProviders.elevenLabs"
+    ],
+    "capabilities": [
+      "transcription",
+      "speech",
+      "audioGeneration",
+      "audioTransformation",
+      "dubbing"
+    ],
+    "files": false,
+    "skills": false,
+    "notes": "ElevenLabs speech and transcription mirror upstream 3.0.71: `ELEVENLABS_API_KEY`, `xi-api-key` auth, custom headers, versioned user-agent suffix, camel-case Swift `AIProviders.elevenLabs` factory, `speech`/`speechModel` and `transcription`/`transcriptionModel` aliases, speech `/v1/text-to-speech/{voice}` request builder with output format aliases, voice settings, pronunciation dictionaries, normalization options and warnings, transcription `/v1/speech-to-text` multipart builder with `scribe_v2`, providerOptions.elevenlabs defaults and schema validation, response text/language/segments/duration, response metadata, ElevenLabs error schema, and unsupported language/embedding/image families. SwiftAISDK additionally exposes locally ported ElevenLabs music, sound effects, voice changer, voice isolator, and dubbing helpers. ProviderV4 type names, ESM-only packaging, Node 22 engines, optional JS headers config, TypeScript export split, and workflow serialization helpers are JS-only upstream concerns. The 2026-10-11 pass: Scribe response word metadata retains speaker and confidence evidence without altering the default diarize=true behavior. The 2026-10-25 pass: Native streaming speech accepts incremental text and v3/v4 dialogue with per-part voices/options, cancellation and typed failures. Unary speech routes dialogue, music and sound effects with validated native composition plans; reported transcription duration wins."
+  }
+]
