@@ -27,7 +27,7 @@ import Testing
     let request = try #require(await transport.requests().first)
     #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=false&output_format=mp3_44100_192")
     #expect(request.headers["xi-api-key"] == "eleven-key")
-    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.71")
+    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.76")
     let body = try decodeJSONBody(try #require(request.body))
     #expect(body["text"]?.stringValue == "Hello")
     #expect(body["model_id"]?.stringValue == "eleven_multilingual_v2")
@@ -311,7 +311,7 @@ import Testing
     #expect(request.headers["content-type"]?.hasPrefix("multipart/form-data; boundary=SwiftAISDK-") == true)
     #expect(request.headers["custom-provider-header"] == "provider-header-value")
     #expect(request.headers["Custom-Request-Header"] == "request-header-value")
-    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.71")
+    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.76")
 }
 
 @Test func elevenLabsTranscriptionRejectsInvalidResponseShapeLikeUpstreamSchema() async throws {
@@ -343,12 +343,11 @@ import Testing
     ))
     let speechModel = try speechProvider.speechModel("eleven_multilingual_v2")
 
-    await #expect(throws: AIError.apiCall(
-        provider: "elevenlabs.speech",
-        statusCode: 401,
-        body: "speech unauthorized",
-        headers: ["content-type": "application/json", "x-eleven": "speech"]
-    )) {
+    var speechError = AIAPICallError(provider: "elevenlabs.speech", statusCode: 401,
+        responseHeaders: ["content-type": "application/json", "x-eleven": "speech"],
+        responseBody: #"{"error":{"message":"speech unauthorized","code":401}}"#)
+    speechError.message = "speech unauthorized"
+    await #expect(throws: AIError.apiCall(speechError)) {
         _ = try await speechModel.speak(SpeechRequest(text: "Hello"))
     }
 
@@ -362,12 +361,11 @@ import Testing
     ))
     let transcriptionModel = try transcriptionProvider.transcriptionModel("scribe_v1")
 
-    await #expect(throws: AIError.apiCall(
-        provider: "elevenlabs.transcription",
-        statusCode: 422,
-        body: "bad audio",
-        headers: ["content-type": "application/json", "x-eleven": "stt"]
-    )) {
+    var transcriptionError = AIAPICallError(provider: "elevenlabs.transcription", statusCode: 422,
+        responseHeaders: ["content-type": "application/json", "x-eleven": "stt"],
+        responseBody: #"{"error":{"message":"bad audio","code":422}}"#)
+    transcriptionError.message = "bad audio"
+    await #expect(throws: AIError.apiCall(transcriptionError)) {
         _ = try await transcriptionModel.transcribe(AudioTranscriptionRequest(audio: Data("mp3".utf8)))
     }
 }

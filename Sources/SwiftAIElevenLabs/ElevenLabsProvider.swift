@@ -5,14 +5,16 @@ import SwiftAIProviderUtilities
 
 public struct ElevenLabsProviderSettings: Sendable {
     public var apiKey: String?
+    /// Supplies a fresh API key immediately before each authenticated request.
+    public var apiKeyProvider: (@Sendable () async throws -> String)?
     public var baseURL: String?
     public var headers: [String: String]
     public var queryParams: [String: String]
     public var transport: any AITransport
 
-    public init(apiKey: String? = nil, baseURL: String? = nil, headers: [String: String] = [:],
+    public init(apiKey: String? = nil, apiKeyProvider: (@Sendable () async throws -> String)? = nil, baseURL: String? = nil, headers: [String: String] = [:],
                 queryParams: [String: String] = [:], transport: any AITransport = URLSessionTransport.shared) {
-        self.apiKey = apiKey; self.baseURL = baseURL; self.headers = headers
+        self.apiKey = apiKey; self.apiKeyProvider = apiKeyProvider; self.baseURL = baseURL; self.headers = headers
         self.queryParams = queryParams; self.transport = transport
     }
 }
@@ -23,15 +25,21 @@ public final class ElevenLabsProvider: AIProvider, Sendable {
     private let config: ElevenLabsModelConfiguration
 
     public init(configuration: ElevenLabsProviderSettings = .init()) throws {
+        var resolvedSettings = configuration
+        let credentialResolver = resolvedSettings.apiKeyProvider.map(AIAsyncCredential.init)
+        if let credential = credentialResolver {
+            resolvedSettings.apiKey = credential.placeholder
+        }
+        let configuration = resolvedSettings
         let names = ["ELEVENLABS_API_KEY"]
         guard let key = configuration.apiKey ?? environmentValue(names) else {
             throw AIError.missingAPIKey(provider: "elevenlabs", environmentVariables: names)
         }
-        var headers = configuration.headers
+        var headers = normalizeHeaders(configuration.headers)
         headers["xi-api-key"] = headers["xi-api-key"] ?? "\(key)"
-        headers = withUserAgentSuffix(headers, "ai-sdk-elevenlabs/3.0.71")
+        headers = withUserAgentSuffix(headers, "ai-sdk-elevenlabs/3.0.76")
         let baseURL = withoutTrailingSlash(configuration.baseURL ?? "https://api.elevenlabs.io")
-        let http = AIProviderHTTPClient(providerID: "elevenlabs", headers: headers, transport: configuration.transport,
+        let http = AIProviderHTTPClient(providerID: "elevenlabs", headers: headers, transport: configuration.transport, credentialResolver: credentialResolver,
             url: { _, path in try providerURL("\(baseURL)\(path)", queryParams: configuration.queryParams) })
         config = ElevenLabsModelConfiguration(http: http, baseURL: baseURL)
     }

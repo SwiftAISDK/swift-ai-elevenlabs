@@ -45,6 +45,8 @@ public final class ElevenLabsMusicModel: AudioGenerationModel, @unchecked Sendab
                 body["store_for_inpainting"] = value
             case "signWithC2PA":
                 body["sign_with_c2pa"] = value
+            case "withTimestamps":
+                if value == true { body["with_timestamps"] = true }
             case "outputFormat":
                 if let format = value.stringValue { query["output_format"] = elevenLabsExtendedOutputFormat(format) }
             default:
@@ -52,16 +54,20 @@ public final class ElevenLabsMusicModel: AudioGenerationModel, @unchecked Sendab
             }
         }
 
-        let path = "/v1/music" + (query.isEmpty ? "" : "?\(queryString(query))")
+        let timestamps = options["withTimestamps"] == true
+        let path = (timestamps ? "/v1/music/detailed" : "/v1/music") + (query.isEmpty ? "" : "?\(queryString(query))")
         let response = try await config.transport.send(config.request(path: path, modelID: modelID, body: .object(body), headers: request.headers, abortSignal: request.abortSignal))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
+        let decoded = try elevenLabsDecodeSpeechResponse(response, musicTimestamps: timestamps)
         return AudioGenerationResult(
-            audio: response.body,
-            contentType: response.headers.contentType,
+            audio: decoded.audio,
+            contentType: timestamps ? elevenLabsAudioFormat(query["output_format"] ?? "mp3_44100_128").mediaType : response.headers.contentType,
+            rawValue: decoded.raw ?? .null,
+            providerMetadata: decoded.metadata.isEmpty ? [:] : ["elevenlabs": .object(decoded.metadata)],
             requestMetadata: aiRequestMetadata(body: .object(body), headers: request.headers),
-            responseMetadata: aiResponseMetadata(response: response, modelID: modelID)
+            responseMetadata: decoded.raw.map { aiResponseMetadata(from: $0, response: response, modelID: modelID) } ?? aiResponseMetadata(response: response, modelID: modelID)
         )
     }
 }
@@ -106,7 +112,7 @@ public final class ElevenLabsSoundEffectsModel: AudioGenerationModel, @unchecked
         let path = "/v1/sound-generation" + (query.isEmpty ? "" : "?\(queryString(query))")
         let response = try await config.transport.send(config.request(path: path, modelID: modelID, body: .object(body), headers: request.headers, abortSignal: request.abortSignal))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         return AudioGenerationResult(
             audio: response.body,
@@ -184,7 +190,7 @@ public final class ElevenLabsVoiceChangerModel: AudioTransformationModel, @unche
             abortSignal: request.abortSignal
         ))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         return AudioTransformationResult(
             audio: response.body,
@@ -238,7 +244,7 @@ public final class ElevenLabsVoiceIsolatorModel: AudioTransformationModel, @unch
             abortSignal: request.abortSignal
         ))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         return AudioTransformationResult(
             audio: response.body,
@@ -288,7 +294,7 @@ public final class ElevenLabsDubbingClient: @unchecked Sendable {
             abortSignal: request.abortSignal
         ))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         let raw = try response.jsonValue()
         guard let id = raw["dubbing_id"]?.stringValue else {
@@ -306,7 +312,7 @@ public final class ElevenLabsDubbingClient: @unchecked Sendable {
     public func get(_ dubbingID: String, headers: [String: String] = [:], abortSignal: AIAbortSignal? = nil) async throws -> DubbingStatusResult {
         let response = try await config.transport.send(try request(method: "GET", path: "/v1/dubbing/\(urlPathEncode(dubbingID))", headers: headers, abortSignal: abortSignal))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         let raw = try response.jsonValue()
         return DubbingStatusResult(
@@ -324,7 +330,7 @@ public final class ElevenLabsDubbingClient: @unchecked Sendable {
     public func audio(dubbingID: String, languageCode: String, headers: [String: String] = [:], abortSignal: AIAbortSignal? = nil) async throws -> DubbingAudioResult {
         let response = try await config.transport.send(try request(method: "GET", path: "/v1/dubbing/\(urlPathEncode(dubbingID))/audio/\(urlPathEncode(languageCode))", headers: headers, abortSignal: abortSignal))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         return DubbingAudioResult(audio: response.body, contentType: response.headers.contentType, responseMetadata: aiResponseMetadata(response: response, modelID: "dubbing"))
     }
@@ -336,7 +342,7 @@ public final class ElevenLabsDubbingClient: @unchecked Sendable {
     }
 }
 
-private let elevenLabsMusicProviderOptionKeys: Set<String> = ["musicLengthMs", "compositionPlan", "forceInstrumental", "respectSectionsDurations", "storeForInpainting", "signWithC2PA", "outputFormat"]
+private let elevenLabsMusicProviderOptionKeys: Set<String> = ["musicLengthMs", "compositionPlan", "forceInstrumental", "respectSectionsDurations", "storeForInpainting", "signWithC2PA", "outputFormat", "withTimestamps"]
 private let elevenLabsSoundEffectsProviderOptionKeys: Set<String> = ["loop", "promptInfluence", "outputFormat"]
 private let elevenLabsVoiceChangerProviderOptionKeys: Set<String> = ["voiceID", "voice_id", "voiceSettings", "voice_settings", "seed", "removeBackgroundNoise", "fileFormat", "enableLogging", "enable_logging", "optimizeStreamingLatency", "optimize_streaming_latency"]
 private let elevenLabsVoiceIsolatorProviderOptionKeys: Set<String> = ["fileFormat", "previewB64"]
@@ -377,7 +383,7 @@ private func elevenLabsValidateMusicOptions(_ options: [String: JSONValue]) thro
         switch key {
         case "musicLengthMs":
             try requireNumber(value, key: key, min: 3000, max: 600_000)
-        case "forceInstrumental", "respectSectionsDurations", "storeForInpainting", "signWithC2PA":
+        case "forceInstrumental", "respectSectionsDurations", "storeForInpainting", "signWithC2PA", "withTimestamps":
             try requireBool(value, key: key)
         case "outputFormat":
             try requireString(value, key: key)
@@ -467,6 +473,8 @@ private func elevenLabsExtendedOutputFormat(_ outputFormat: String?) -> String {
         return "pcm_44100"
     case "ulaw":
         return "ulaw_8000"
+    case "wav":
+        return "wav_44100"
     case let value?:
         return value
     case nil:

@@ -20,7 +20,7 @@ public final class ElevenLabsSpeechModel: StreamingSpeechModel, @unchecked Senda
     public func speak(_ request: SpeechRequest) async throws -> SpeechResult {
         let options = try elevenLabsProviderOptions(from: request)
         var warnings = elevenLabsSpeechWarnings(for: request)
-        if modelID.hasPrefix("music_") || modelID.hasPrefix("eleven_text_to_sound") || options["inputs"] != nil {
+        if modelID.hasPrefix("music_") || modelID.hasPrefix("eleven_text_to_sound") || options["inputs"] != nil || modelID == "eleven_v4" {
             return try await elevenLabsSpecialSpeech(model: self, request: request, options: options)
         }
         for key in ["streaming", "dialogue", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop"] where options[key] != nil {
@@ -57,7 +57,7 @@ public final class ElevenLabsSpeechModel: StreamingSpeechModel, @unchecked Senda
         }
         for (key, value) in options {
             switch key {
-            case "languageCode", "language_code", "voiceSettings", "voice_settings", "enableLogging", "enable_logging", "speed", "streaming", "dialogue", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop":
+            case "languageCode", "language_code", "voiceSettings", "voice_settings", "enableLogging", "enable_logging", "speed", "streaming", "dialogue", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop", "withTimestamps":
                 continue
             case "pronunciationDictionaryLocators":
                 body["pronunciation_dictionary_locators"] = elevenLabsPronunciationLocators(value)
@@ -79,22 +79,25 @@ public final class ElevenLabsSpeechModel: StreamingSpeechModel, @unchecked Senda
         }
 
         let response = try await config.transport.send(config.request(
-            path: "/v1/text-to-speech/\(voice)?\(queryString(query))",
+            path: "/v1/text-to-speech/\(encodePathSegment(voice))\(options["withTimestamps"] == true ? "/with-timestamps" : "")?\(queryString(query))",
             modelID: modelID,
             body: .object(body),
             headers: request.headers,
             abortSignal: request.abortSignal
         ))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
+        let decoded = try elevenLabsDecodeSpeechResponse(response, withTimestamps: options["withTimestamps"] == true)
+        var metadata = decoded.metadata
+        metadata["outputFormat"] = .string(query["output_format"] ?? "mp3_44100_128")
         return SpeechResult(
-            audio: response.body,
-            contentType: response.headers.contentType,
+            audio: decoded.audio,
+            contentType: options["withTimestamps"] == true ? elevenLabsAudioFormat(query["output_format"]!).mediaType : response.headers.contentType,
             warnings: warnings,
-            providerMetadata: ["elevenlabs": .object(["outputFormat": .string(query["output_format"] ?? "mp3_44100_128")])],
+            providerMetadata: ["elevenlabs": .object(metadata)],
             requestMetadata: AIRequestMetadata(body: .object(body), headers: request.headers),
-            responseMetadata: aiResponseMetadata(response: response, modelID: modelID)
+            responseMetadata: decoded.raw.map { aiResponseMetadata(from: $0, response: response, modelID: modelID) } ?? aiResponseMetadata(response: response, modelID: modelID)
         )
     }
 }
@@ -145,7 +148,7 @@ public final class ElevenLabsTranscriptionModel: TranscriptionModel, @unchecked 
             abortSignal: request.abortSignal
         ))
         guard (200..<300).contains(response.statusCode) else {
-            throw audioProviderHTTPStatusError(provider: providerID, response: response)
+            throw elevenLabsHTTPStatusError(provider: providerID, response: response)
         }
         let raw = try response.jsonValue()
         try elevenLabsValidateTranscriptionResponse(raw)
@@ -180,6 +183,8 @@ func elevenLabsOutputFormat(_ outputFormat: String?) -> String {
         return "pcm_44100"
     case "ulaw":
         return "ulaw_8000"
+    case "wav":
+        return "wav_44100"
     case let value?:
         return value
     case nil:
@@ -253,7 +258,7 @@ func elevenLabsValidateSpeechProviderOptions(_ options: [String: JSONValue]) thr
                 throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.applyTextNormalization", message: "ElevenLabs applyTextNormalization must be one of auto, on, off.")
             }
             output[key] = value
-        case "applyLanguageTextNormalization", "enableLogging":
+        case "applyLanguageTextNormalization", "enableLogging", "withTimestamps":
             try elevenLabsRequireBoolean(value, argument: "providerOptions.elevenlabs.\(key)", message: "ElevenLabs \(key) must be a boolean.")
             output[key] = value
         case "streaming", "dialogue", "inputs", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop":
@@ -308,7 +313,7 @@ private let elevenLabsSpeechProviderOptionKeys: Set<String> = [
     "nextRequestIds",
     "applyTextNormalization",
     "applyLanguageTextNormalization",
-    "enableLogging", "streaming", "dialogue", "inputs", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop"
+    "enableLogging", "streaming", "dialogue", "inputs", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop", "withTimestamps"
 ]
 
 private let elevenLabsTranscriptionProviderOptionKeys: Set<String> = [

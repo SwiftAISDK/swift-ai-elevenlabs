@@ -3,16 +3,20 @@
   "packages": [
     {
       "name": "@ai-sdk/elevenlabs",
-      "reviewedVersion": "3.0.71",
+      "reviewedVersion": "3.0.76",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`",
+      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-i78fhytpqD171BJIlJeGD22xjt3soiP5OR/V0zoPKxn1Y+E2ByCeMkJ6wXtzO/qcHPtwHf7AizKwfIfPFEOn5Q==",
-      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.71",
-      "testRef": "682e2dd71456f14f9da33a1b983d1998c3a1184c",
-      "testRefRelationship": "inventory-snapshot-not-release-verified",
-      "contractFamilies": [],
-      "contractReview": "not-imported; inspect upstream declarations before extraction"
+      "archiveIntegrity": "sha512-1Mm/90AheTRJLXPFVbPcdni07VuxiK6KAj3PHH3TKoFLSD78QaWiICCzZgwjw07x8aknTppfnBEaTpYJs9dMGQ==",
+      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.76",
+      "testRef": "9b603d36186b75e58d5479445a96c76f6e2d2700",
+      "testRefRelationship": "matching-release",
+      "contractFamilies": [
+        "ProviderV4",
+        "SpeechModelV4",
+        "TranscriptionModelV4"
+      ],
+      "contractReview": "2026-11-01: published declarations, source and exact matching-release changed tests reviewed; scoped dispositions and Swift translations are in Docs/WeeklyUpstreamAudit20261101.json. Existing broader product gaps remain; reviewed delta is not full-package parity."
     }
   ]
 }
