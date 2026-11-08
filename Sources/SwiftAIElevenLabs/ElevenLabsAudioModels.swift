@@ -116,7 +116,15 @@ public final class ElevenLabsTranscriptionModel: TranscriptionModel, @unchecked 
         let options = try elevenLabsProviderOptions(from: request)
         var form = MultipartFormData()
         form.appendField(name: "model_id", value: modelID)
-        form.appendFile(name: "file", fileName: "audio.\(mediaTypeToExtension(request.mimeType))", mimeType: request.mimeType, data: request.audio)
+        var warnings: [AIWarning] = []
+        if let sourceURL = options["sourceUrl"]?.stringValue {
+            form.appendField(name: "source_url", value: sourceURL)
+            if !request.audio.isEmpty {
+                warnings.append(.init(type: "other", message: "ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored."))
+            }
+        } else {
+            form.appendFile(name: "file", fileName: "audio.\(mediaTypeToExtension(request.mimeType))", mimeType: request.mimeType, data: request.audio)
+        }
         form.appendField(name: "diarize", value: String(options["diarize"]?.boolValue ?? true))
         if let language = options["languageCode"]?.stringValue ?? options["language_code"]?.stringValue {
             form.appendField(name: "language_code", value: language)
@@ -124,7 +132,7 @@ public final class ElevenLabsTranscriptionModel: TranscriptionModel, @unchecked 
         for (key, value) in options {
             guard let scalar = jsonScalarString(value) else { continue }
             switch key {
-            case "languageCode", "language_code", "diarize":
+            case "languageCode", "language_code", "diarize", "sourceUrl":
                 continue
             case "tagAudioEvents":
                 form.appendField(name: "tag_audio_events", value: scalar)
@@ -159,6 +167,7 @@ public final class ElevenLabsTranscriptionModel: TranscriptionModel, @unchecked 
             segments: segments,
             language: raw["language_code"]?.stringValue,
             durationInSeconds: raw["audio_duration_secs"]?.doubleValue ?? elevenLabsTranscriptionDuration(from: raw),
+            warnings: warnings,
             providerMetadata: raw["words"]?.arrayValue.map { ["elevenlabs": .object(["words": .array($0)])] } ?? [:],
             responseMetadata: aiResponseMetadata(from: raw, response: response, modelID: modelID)
         )
@@ -278,7 +287,7 @@ private func elevenLabsValidateTranscriptionProviderOptions(_ options: [String: 
             continue
         }
         switch key {
-        case "languageCode":
+        case "languageCode", "sourceUrl":
             try elevenLabsRequireString(value, argument: "providerOptions.elevenlabs.languageCode", message: "ElevenLabs languageCode must be a string.")
         case "tagAudioEvents", "diarize":
             try elevenLabsRequireBoolean(value, argument: "providerOptions.elevenlabs.\(key)", message: "ElevenLabs \(key) must be a boolean.")
@@ -317,6 +326,7 @@ private let elevenLabsSpeechProviderOptionKeys: Set<String> = [
 ]
 
 private let elevenLabsTranscriptionProviderOptionKeys: Set<String> = [
+    "sourceUrl",
     "languageCode",
     "tagAudioEvents",
     "numSpeakers",

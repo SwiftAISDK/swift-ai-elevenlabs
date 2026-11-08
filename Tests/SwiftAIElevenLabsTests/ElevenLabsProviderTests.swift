@@ -27,7 +27,7 @@ import Testing
     let request = try #require(await transport.requests().first)
     #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=false&output_format=mp3_44100_192")
     #expect(request.headers["xi-api-key"] == "eleven-key")
-    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.76")
+    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.81")
     let body = try decodeJSONBody(try #require(request.body))
     #expect(body["text"]?.stringValue == "Hello")
     #expect(body["model_id"]?.stringValue == "eleven_multilingual_v2")
@@ -311,7 +311,7 @@ import Testing
     #expect(request.headers["content-type"]?.hasPrefix("multipart/form-data; boundary=SwiftAISDK-") == true)
     #expect(request.headers["custom-provider-header"] == "provider-header-value")
     #expect(request.headers["Custom-Request-Header"] == "request-header-value")
-    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.76")
+    #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.81")
 }
 
 @Test func elevenLabsTranscriptionRejectsInvalidResponseShapeLikeUpstreamSchema() async throws {

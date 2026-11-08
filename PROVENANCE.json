@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-elevenlabs",
-  "version": "1.1.0",
-  "releaseID": "weekly-upstream-20261101",
+  "version": "1.2.0",
+  "releaseID": "weekly-upstream-20261108",
   "source": {
-    "commit": "ea057797494ab9bb66df8c6bfd8edc10245b20e7",
-    "baseCommit": "ea057797494ab9bb66df8c6bfd8edc10245b20e7",
+    "commit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
+    "baseCommit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
     "workingTree": false,
-    "inputsSHA256": "b46f3e07b0a583d6fee81035987d74a06fc5c6109cbdf228144d1172d2c3676e"
+    "inputsSHA256": "987359720075cb67dd8bc45bdc049aee4c5d5a42b67a7eb148e697ce5d18bd77"
   },
   "dependencies": [
     {
@@ -17,29 +17,29 @@
   ],
   "changes": [
     {
-      "id": "weekly-upstream-20261101",
-      "notes": "Validated withTimestamps option routes HTTP TTS/dialogue through /with-timestamps and music through /v1/music/detailed; decoded audio retains camelCase alignment, normalizedAlignment, voiceSegments and lyric wordTimestamps metadata plus exact raw JSON. eleven_v4 automatically uses single-voice Text to Dialogue; explicit inputs retain multi-voice behavior. Generic wav maps to wav_44100. Streaming speech warns for unsupported withTimestamps while preserving existing WS alignments. Binary-safe multipart music decoding accepts reversed metadata/audio order, Unicode, empty audio and boundary-lookalike bytes; rejects missing/duplicate parts, invalid metadata and incomplete framing. Object, validation-array, string detail and legacy error envelopes preserve typed provider message/code separately from raw responseBody, response headers and status, including transcription and native extended audio clients. Additive native async apiKeyProvider resolves at each HTTP send/stream and WS connect, preserves case-insensitive caller overrides, propagates supplier failures before transport and excludes auth from reported WS init metadata. Reviewed upstream: @ai-sdk/elevenlabs 3.0.71 to 3.0.76. Validation passed: node Scripts/test-packages.mjs (all 52 owning package suites and the compatibility facade); node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); docs-site check and build (100 pages). Live provider calls were not run.",
-      "compatibility": "Minor release for additive native API; existing static settings and call sites remain compatible. Updated direct dependency minimums are recorded in the manifest. Existing documented JS/framework and native product gaps remain; version-delta review does not imply full parity or live-service testing. Explicit custom authentication skips an unused credential supplier, a deliberate native callback-order adaptation."
+      "id": "weekly-upstream-20261108",
+      "notes": "Add sourceUrl transcription option with exclusive multipart URL/file behavior and ignored-audio warning. Reviewed published upstream delta: @ai-sdk/elevenlabs 3.0.76 to 3.0.81. Validation passed: node Scripts/test-packages.mjs (all 52 owning packages plus the complete local facade; 3,965 reported tests and 33 explicit live skips); node Scripts/sdk.mjs dev test; node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); core/provider isolation and version resolution; 52 deterministic package exports, 106 catalog consumers and four additional exact retained-minimum graphs; docs-site install/check/build (100 pages); git diff --check. No paid live-service calls were run. The publication pipeline requires successful Swift 6.3.3 CI at the exact canonical source before publishing.",
+      "compatibility": "Minor release for additive native functionality under the project convention. Existing call sites and exact old selectors are retained. Direct minimums change only for concrete API use or required inherited behavior. Version-delta review does not establish full-package parity or live-service acceptance."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-elevenlabs",
   "upstream": [
     {
       "name": "@ai-sdk/elevenlabs",
-      "reviewedVersion": "3.0.76",
+      "reviewedVersion": "3.0.81",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json",
+      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-1Mm/90AheTRJLXPFVbPcdni07VuxiK6KAj3PHH3TKoFLSD78QaWiICCzZgwjw07x8aknTppfnBEaTpYJs9dMGQ==",
-      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.76",
-      "testRef": "9b603d36186b75e58d5479445a96c76f6e2d2700",
+      "archiveIntegrity": "sha512-v5e7baVtX8S5VTiSEPHFav+lsAuhBpFiWJK60y9X2sN0f73penjIj8Z1HCqp8bwtPkRo6HJeQhZ8ZZzwZ5Sw7Q==",
+      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.81",
+      "testRef": "0f3a85f92d1ce06ccde01d662407ef83e097a712",
       "testRefRelationship": "matching-release",
       "contractFamilies": [
         "ProviderV4",
         "SpeechModelV4",
         "TranscriptionModelV4"
       ],
-      "contractReview": "2026-11-01: published declarations, source and exact matching-release changed tests reviewed; scoped dispositions and Swift translations are in Docs/WeeklyUpstreamAudit20261101.json. Existing broader product gaps remain; reviewed delta is not full-package parity."
+      "contractReview": "2026-11-08: published declarations/source and exact matching-release changed tests reviewed; native implementations, per-file dispositions and broader retained gaps are recorded in Docs/WeeklyUpstreamAudit20261108.json. Reviewed delta is not full-package or live-service parity."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -58,15 +58,15 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Porting/map.json",
-      "sha256": "db91e10e1c6507ace212bdef49524858ab71578f301aabe90232a3be25c7cda5"
+      "sha256": "4bcf1b1eed9eb62ab9cb2b0a9adfeb18efd1b56f5ae2829fbc67cb2c6e5f1a2c"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/README.md",
-      "sha256": "dcba57e74a1d06b63a85b4de339885cab5e1d9310990e2c596fe60a6e5e63ff7"
+      "sha256": "4ad1fd70c9f61ba7cac3ba0f973748d3e06817d09eee632876fdca7ed4d2c54f"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsAudioModels.swift",
-      "sha256": "b827986257f59fa7c519b25e3d5fb14035d08580e5293173ef4d45f6ab46e466"
+      "sha256": "1a10ef75390b07c1090e1b1ad6bd125b4ac87891b03b1d43f869c92bab72d633"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsExtendedAudioModels.swift",
@@ -74,7 +74,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsProvider.swift",
-      "sha256": "e4f09c3d2982c094acc96979b59185c7f78eef96c3f1a8a0969d4ef1a35891cd"
+      "sha256": "040cb9ab77c83a6de10fa570a383cd8c54668e478a43bd54c7d089a48b9164fa"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsSpeechTimestamps.swift",
@@ -90,7 +90,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
-      "sha256": "c1dad69d327a0d6d24e77b4215ce60a99c04614f68ce41a5b412ae5cef3a2a04"
+      "sha256": "2dfb74f170e5d3cfa671faf705dd7f017d6018a479677247ee2f55dcb58bff3f"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",
@@ -111,6 +111,10 @@
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/Weekly20261101SpeechTests.swift",
       "sha256": "8e0467cc2cdf33a5abebbdde905d13b523ccb6e58fa08538fa37d69167dfb751"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/Weekly20261108SourceTests.swift",
+      "sha256": "ab2a608053039417a53e342d3c57102d7682fd4f29c7b4abfc9392411c6f555d"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/WeeklyElevenLabs20261025Tests.swift",
