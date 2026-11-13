@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-elevenlabs",
-  "version": "1.2.0",
-  "releaseID": "weekly-upstream-20261108",
+  "version": "1.2.1",
+  "releaseID": "weekly-upstream-20261114",
   "source": {
-    "commit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
-    "baseCommit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
+    "commit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
+    "baseCommit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
     "workingTree": false,
-    "inputsSHA256": "987359720075cb67dd8bc45bdc049aee4c5d5a42b67a7eb148e697ce5d18bd77"
+    "inputsSHA256": "63e472c0fe891cb7636d225e1c6467e4761dc3721be68081f2afa9f0b656bb29"
   },
   "dependencies": [
     {
@@ -17,29 +17,29 @@
   ],
   "changes": [
     {
-      "id": "weekly-upstream-20261108",
-      "notes": "Add sourceUrl transcription option with exclusive multipart URL/file behavior and ignored-audio warning. Reviewed published upstream delta: @ai-sdk/elevenlabs 3.0.76 to 3.0.81. Validation passed: node Scripts/test-packages.mjs (all 52 owning packages plus the complete local facade; 3,965 reported tests and 33 explicit live skips); node Scripts/sdk.mjs dev test; node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); core/provider isolation and version resolution; 52 deterministic package exports, 106 catalog consumers and four additional exact retained-minimum graphs; docs-site install/check/build (100 pages); git diff --check. No paid live-service calls were run. The publication pipeline requires successful Swift 6.3.3 CI at the exact canonical source before publishing.",
-      "compatibility": "Minor release for additive native functionality under the project convention. Existing call sites and exact old selectors are retained. Direct minimums change only for concrete API use or required inherited behavior. Version-delta review does not establish full-package parity or live-service acceptance."
+      "id": "weekly-upstream-20261114",
+      "notes": "Refresh the versioned request identity while retaining the current native request, response and stream behavior. Internal upstream model-catalog reorganizations preserve the existing native policies. Reviewed npm delta: @ai-sdk/elevenlabs 3.0.81 to 3.0.86. Validation: `node Scripts/test-packages.mjs` passed all 52 owning suites and 1731 facade tests; tooling 27/27, generation/isolation checks, standalone exports and 106 minimum/latest consumers, documentation check and 101-page build passed. Publication requires green exact-source Swift 6.3.3 CI. Paid/live verification and full-package parity are not claimed.",
+      "compatibility": "Compatible behavior/header correction. Original public selectors are preserved. npm baselines and Swift SemVer are independent; this reviewed delta does not establish full-package or live-service parity."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-elevenlabs",
   "upstream": [
     {
       "name": "@ai-sdk/elevenlabs",
-      "reviewedVersion": "3.0.81",
+      "reviewedVersion": "3.0.86",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json",
+      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/WeeklyUpstreamAudit20261114.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-v5e7baVtX8S5VTiSEPHFav+lsAuhBpFiWJK60y9X2sN0f73penjIj8Z1HCqp8bwtPkRo6HJeQhZ8ZZzwZ5Sw7Q==",
-      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.81",
-      "testRef": "0f3a85f92d1ce06ccde01d662407ef83e097a712",
+      "archiveIntegrity": "sha512-L/OVfGJrcGIGM4vTMvadwQvu6MWRyPZlscbeOxMcn08a6Gpq9fQsET7z8yLWLJDzUA+nFgY+KON6bMnDcKuSlw==",
+      "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.86",
+      "testRef": "8bc7652cdb13fc84722666eb93f45acd0d131eee",
       "testRefRelationship": "matching-release",
       "contractFamilies": [
         "ProviderV4",
         "SpeechModelV4",
         "TranscriptionModelV4"
       ],
-      "contractReview": "2026-11-08: published declarations/source and exact matching-release changed tests reviewed; native implementations, per-file dispositions and broader retained gaps are recorded in Docs/WeeklyUpstreamAudit20261108.json. Reviewed delta is not full-package or live-service parity."
+      "contractReview": "2026-11-14: verified published source/declarations and exact matching-release changed tests reviewed separately; native ports, per-file dispositions and retained gaps are recorded in Docs/WeeklyUpstreamAudit20261114.json. Delta review is not full-package or live-service parity."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -58,7 +58,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Porting/map.json",
-      "sha256": "4bcf1b1eed9eb62ab9cb2b0a9adfeb18efd1b56f5ae2829fbc67cb2c6e5f1a2c"
+      "sha256": "93af87cf297f846a8df3928a9387492bfbc77c0df28b6c2609547dd551a9af1a"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/README.md",
@@ -74,7 +74,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsProvider.swift",
-      "sha256": "040cb9ab77c83a6de10fa570a383cd8c54668e478a43bd54c7d089a48b9164fa"
+      "sha256": "54a06cbaf797ced2a8e4bb6819b4fdedcf6ec62063e618dc28a56b26ea7d00b3"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsSpeechTimestamps.swift",
@@ -90,7 +90,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
-      "sha256": "2dfb74f170e5d3cfa671faf705dd7f017d6018a479677247ee2f55dcb58bff3f"
+      "sha256": "69f409bd4cb2a29dc7532d23767bb9eb2e561e893daf1101fe9242099fb0ace0"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",

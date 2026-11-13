@@ -37,7 +37,7 @@ public final class ElevenLabsProvider: AIProvider, Sendable {
         }
         var headers = normalizeHeaders(configuration.headers)
         headers["xi-api-key"] = headers["xi-api-key"] ?? "\(key)"
-        headers = withUserAgentSuffix(headers, "ai-sdk-elevenlabs/3.0.81")
+        headers = withUserAgentSuffix(headers, "ai-sdk-elevenlabs/3.0.86")
         let baseURL = withoutTrailingSlash(configuration.baseURL ?? "https://api.elevenlabs.io")
         let http = AIProviderHTTPClient(providerID: "elevenlabs", headers: headers, transport: configuration.transport, credentialResolver: credentialResolver,
             url: { _, path in try providerURL("\(baseURL)\(path)", queryParams: configuration.queryParams) })
