@@ -1,5 +1,5 @@
 <!-- Generated distribution; edit the canonical repository. -->
-# swift-ai-elevenlabs 1.2.1
+# swift-ai-elevenlabs 1.3.0
 
 Independent Swift-native port of Vercel AI SDK. Source and upstream dispositions are in PROVENANCE.json and Porting/.
 
@@ -8,7 +8,7 @@ Independent Swift-native port of Vercel AI SDK. Source and upstream dispositions
 Add this package to your SwiftPM dependencies:
 
 ```swift
-.package(url: "https://github.com/SwiftAISDK/swift-ai-elevenlabs.git", from: "1.2.1")
+.package(url: "https://github.com/SwiftAISDK/swift-ai-elevenlabs.git", from: "1.3.0")
 ```
 
 Products: `SwiftAIElevenLabs`.
@@ -16,29 +16,29 @@ Contribute and report issues in the canonical SwiftAISDK repository.
 
 ## Authored usage guide
 
-# SwiftAIElevenLabs
+# ElevenLabs for Swift
 
-Swift-native port of `@ai-sdk/elevenlabs`. Maintained in the canonical SwiftAISDK repository and exported as an independent Swift package.
+`SwiftAIElevenLabs` adds ElevenLabs to [SwiftAISDK](https://github.com/SwiftAISDK/SwiftAISDK), an independent Swift port of the Vercel AI SDK. It ports `@ai-sdk/elevenlabs` and supports transcription, speech, audio generation, audio transformation and dubbing.
+
+Provider guide with models, options, streaming and errors:
+
+- [ElevenLabs](https://swiftaisdk.github.io/SwiftAISDK/providers/elevenlabs/)
+
+## Usage
+
+Add the `SwiftAI` product from `swift-ai-core` and the `SwiftAIElevenLabs` product from this package to your target, then create the provider:
 
 ```swift
+import SwiftAI
 import SwiftAIElevenLabs
 
-let provider = try ElevenLabsProvider(configuration: .init(apiKey: "..."))
+let provider = try AIProviders.elevenLabs(configuration: ElevenLabsProviderSettings())
 ```
 
-Settings accept a custom base URL, headers, query parameters and an injected
-`AITransport`. Models use the common SwiftAIProvider protocols.
+By default the provider reads `ELEVENLABS_API_KEY` from the environment; values set in `ElevenLabsProviderSettings` take precedence.
 
-Run the standalone suite from the canonical checkout:
+To use every provider through one dependency, add the complete [SwiftAISDK](https://github.com/SwiftAISDK/SwiftAISDK) package instead; see [Install](https://swiftaisdk.github.io/SwiftAISDK/getting-started/install/).
 
-```sh
-swift test --package-path Packages/swift-ai-elevenlabs
-```
+## Contributing
 
-The canonical repository owns all edits. Distribution manifests and repositories
-are generated from the catalog; see `Porting/map.json` and the canonical provider guide.
-
-See [provider usage and capabilities](https://github.com/SwiftAISDK/SwiftAISDK/blob/main/docs-site/scripts/provider-guides/elevenlabs.md) for authentication, options and supported surfaces.
-## Behavior notes
-
-`providerOptions.elevenlabs.sourceUrl` sends `source_url` instead of uploading a file. A nonempty audio input is ignored with a warning when this option is present; nil or null retains file upload.
+This package is exported from `Packages/swift-ai-elevenlabs` in the canonical [SwiftAISDK](https://github.com/SwiftAISDK/SwiftAISDK) repository. Open issues and pull requests there.

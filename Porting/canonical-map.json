@@ -29,6 +29,10 @@
     ],
     "tests": [
       "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechDialogueStreamParityTests.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechModelParityTests.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechStreamParityTests.swift",
+      "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsTranscriptionParityTests.swift",
       "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",
       "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/SpeechSocketTestSupport.swift",
       "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/TestSupport.swift",

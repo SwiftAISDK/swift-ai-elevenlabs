@@ -29,6 +29,10 @@
     ],
     "tests": [
       "Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
+      "Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechDialogueStreamParityTests.swift",
+      "Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechModelParityTests.swift",
+      "Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechStreamParityTests.swift",
+      "Tests/SwiftAIElevenLabsTests/ElevenLabsTranscriptionParityTests.swift",
       "Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",
       "Tests/SwiftAIElevenLabsTests/SpeechSocketTestSupport.swift",
       "Tests/SwiftAIElevenLabsTests/TestSupport.swift",

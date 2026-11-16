@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-elevenlabs",
-  "version": "1.2.1",
-  "releaseID": "weekly-upstream-20261114",
+  "version": "1.3.0",
+  "releaseID": "upstream-parity-20261116",
   "source": {
-    "commit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
-    "baseCommit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
+    "commit": "1c457dea36be42376a6853aecd5c48ffc4942178",
+    "baseCommit": "1c457dea36be42376a6853aecd5c48ffc4942178",
     "workingTree": false,
-    "inputsSHA256": "63e472c0fe891cb7636d225e1c6467e4761dc3721be68081f2afa9f0b656bb29"
+    "inputsSHA256": "d7b8f52add7828d7e9ed20418fe072e7db03e75483a168bb7f5c34e9d2a04a13"
   },
   "dependencies": [
     {
@@ -17,9 +17,9 @@
   ],
   "changes": [
     {
-      "id": "weekly-upstream-20261114",
-      "notes": "Refresh the versioned request identity while retaining the current native request, response and stream behavior. Internal upstream model-catalog reorganizations preserve the existing native policies. Reviewed npm delta: @ai-sdk/elevenlabs 3.0.81 to 3.0.86. Validation: `node Scripts/test-packages.mjs` passed all 52 owning suites and 1731 facade tests; tooling 27/27, generation/isolation checks, standalone exports and 106 minimum/latest consumers, documentation check and 101-page build passed. Publication requires green exact-source Swift 6.3.3 CI. Paid/live verification and full-package parity are not claimed.",
-      "compatibility": "Compatible behavior/header correction. Original public selectors are preserved. npm baselines and Swift SemVer are independent; this reviewed delta does not establish full-package or live-service parity."
+      "id": "upstream-parity-20261116",
+      "notes": "Diarization defaults to true, realtime models are rejected before HTTP, query and form order and dialogue stream framing match upstream, and warning and error texts match upstream.",
+      "compatibility": "Source-compatible; changes are additive. Request bodies, results, warnings and errors change to match the reviewed upstream package."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-elevenlabs",
@@ -28,7 +28,7 @@
       "name": "@ai-sdk/elevenlabs",
       "reviewedVersion": "3.0.86",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/WeeklyUpstreamAudit20261114.json",
+      "evidence": "`AIProviders.elevenLabs`, `ElevenLabsSpeechModel`, `ElevenLabsTranscriptionModel`, `ElevenLabsProviderTests.swift`; 2026-11-01 delta: Docs/Archive/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/Archive/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/Archive/WeeklyUpstreamAudit20261114.json",
       "reviewStatus": "imported-reviewed-with-gaps",
       "archiveIntegrity": "sha512-L/OVfGJrcGIGM4vTMvadwQvu6MWRyPZlscbeOxMcn08a6Gpq9fQsET7z8yLWLJDzUA+nFgY+KON6bMnDcKuSlw==",
       "sourceRef": "npm:@ai-sdk/elevenlabs@3.0.86",
@@ -39,7 +39,7 @@
         "SpeechModelV4",
         "TranscriptionModelV4"
       ],
-      "contractReview": "2026-11-14: verified published source/declarations and exact matching-release changed tests reviewed separately; native ports, per-file dispositions and retained gaps are recorded in Docs/WeeklyUpstreamAudit20261114.json. Delta review is not full-package or live-service parity."
+      "contractReview": "2026-11-14: verified published source/declarations and exact matching-release changed tests reviewed separately; native ports, per-file dispositions and retained gaps are recorded in Docs/Archive/WeeklyUpstreamAudit20261114.json. Delta review is not full-package or live-service parity."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -58,15 +58,15 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Porting/map.json",
-      "sha256": "93af87cf297f846a8df3928a9387492bfbc77c0df28b6c2609547dd551a9af1a"
+      "sha256": "b2c03a518b6ae864492068ec1f3c552f08827c684a27b0bd4b0597c69670e03a"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/README.md",
-      "sha256": "4ad1fd70c9f61ba7cac3ba0f973748d3e06817d09eee632876fdca7ed4d2c54f"
+      "sha256": "b24972bd943f7049ae003a02715f7bb4c77665f2b883b0fa400779782a47c60c"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsAudioModels.swift",
-      "sha256": "1a10ef75390b07c1090e1b1ad6bd125b4ac87891b03b1d43f869c92bab72d633"
+      "sha256": "8004bdf445db5b8e468d9a4db36e8540f2fa4311dea04d3695455dfc36df2281"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsExtendedAudioModels.swift",
@@ -82,15 +82,31 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsStreamingSpeechModel.swift",
-      "sha256": "a1f6a462fa3fec79cae26f936b6da5ca605f12244a6dfcec809bf20c4a75168f"
+      "sha256": "5192507b2c863b1934ca9e99d0a7e19e88b10626e1cc14894a5d78be9ea09250"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Sources/SwiftAIElevenLabs/ElevenLabsTranscriptionParsing.swift",
-      "sha256": "40893bb6e8577cf8102ddb8d382c8d59a2a0261475ce68cf3e70523116b2d535"
+      "sha256": "2c8931b6d77691db7d034c8ea2c7786ab852768d66850bcfcf293723a1696583"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsProviderTests.swift",
-      "sha256": "69f409bd4cb2a29dc7532d23767bb9eb2e561e893daf1101fe9242099fb0ace0"
+      "sha256": "0876b5846d8bd0ea2fd43d5ffb366af09e4e9216493f559c314da3c0b4f5bc30"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechDialogueStreamParityTests.swift",
+      "sha256": "0591e1319cbab68e7c878de27fdc6de205c49426ed691542500b765743f5d5de"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechModelParityTests.swift",
+      "sha256": "c52ba4a287e4b0876df00c50bb0a2ae1e9025c9f460aab10783bd593ce3eba9f"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsSpeechStreamParityTests.swift",
+      "sha256": "6faedb65daa7198d9c2a7b57f499b0079579b27af89ebee8b8bc95cbd5c273c4"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/ElevenLabsTranscriptionParityTests.swift",
+      "sha256": "c5776e3dbb7211c5ad1e04c57b1eff3edf68a1dd776f8c0d8d2451d6340f74bc"
     },
     {
       "canonicalPath": "Packages/swift-ai-elevenlabs/Tests/SwiftAIElevenLabsTests/FixtureDownloadTransport.swift",

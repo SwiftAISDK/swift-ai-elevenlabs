@@ -25,7 +25,7 @@ import Testing
     #expect(result.audio == Data("eleven-audio".utf8))
     #expect(result.contentType == "audio/mpeg")
     let request = try #require(await transport.requests().first)
-    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=false&output_format=mp3_44100_192")
+    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_192&enable_logging=false")
     #expect(request.headers["xi-api-key"] == "eleven-key")
     #expect(request.headers["user-agent"] == "ai-sdk-elevenlabs/3.0.86")
     let body = try decodeJSONBody(try #require(request.body))
@@ -117,7 +117,7 @@ import Testing
     ))
 
     let request = try #require(await transport.requests().first)
-    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=false&output_format=mp3_44100_128")
+    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_128&enable_logging=false")
     let body = try decodeJSONBody(try #require(request.body))
     #expect(body["language_code"]?.stringValue == "ja")
     #expect(body["voice_settings"]?["speed"]?.doubleValue == 0.85)
@@ -183,7 +183,7 @@ import Testing
     ))
 
     let request = try #require(await transport.requests().first)
-    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=true&output_format=mp3_44100_128")
+    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_128&enable_logging=true")
     let body = try decodeJSONBody(try #require(request.body))
     #expect(body["language_code"]?.stringValue == "ja")
     #expect(body["voice_settings"]?["stability"]?.doubleValue == 0.3)
@@ -220,7 +220,7 @@ import Testing
     ))
 
     let request = try #require(await transport.requests().first)
-    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?enable_logging=false&output_format=mp3_44100_128")
+    #expect(request.url.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_128&enable_logging=false")
     let body = try decodeJSONBody(try #require(request.body))
     #expect(body["language_code"]?.stringValue == "ja")
 }
@@ -689,7 +689,8 @@ import Testing
     #expect(body.contains("name=\"file_format\""))
     #expect(body.contains("other"))
     #expect(body.contains("name=\"diarize\""))
-    #expect(body.contains("false"))
+    // Upstream schema default: diarize is true unless explicitly false.
+    #expect(!body.contains("false"))
     #expect(!body.contains("fr"))
 }
 

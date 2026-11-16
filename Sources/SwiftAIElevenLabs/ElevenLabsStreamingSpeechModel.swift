@@ -9,7 +9,7 @@ extension ElevenLabsSpeechModel {
         do {
             try request.abortSignal?.throwIfAborted()
             guard !modelID.hasPrefix("music_"), !modelID.hasPrefix("eleven_text_to_sound") else {
-                throw AIError.invalidArgument(argument: "model", message: "ElevenLabs music and sound effects models do not support streaming speech.")
+                throw AIError.invalidArgument(argument: "model", message: "ElevenLabs \(modelID) does not support streaming; use generateSpeech instead.")
             }
             let options = try elevenLabsValidateSpeechProviderOptions(request.providerOptions["elevenlabs"]?.objectValue ?? [:])
             if let raw = request.providerOptions["elevenlabs"], raw != .null, raw.objectValue == nil {
@@ -18,35 +18,54 @@ extension ElevenLabsSpeechModel {
             let streaming = options["streaming"]?.objectValue ?? [:]
             let dialogue = options["dialogue"]?.objectValue
             let dialogueModel = modelID.hasPrefix("eleven_v3") || modelID.hasPrefix("eleven_v4")
-            if dialogue != nil && !dialogueModel { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue", message: "ElevenLabs dialogue requires an eleven_v3 or eleven_v4 model.") }
-            if dialogueModel && dialogue == nil { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue", message: "ElevenLabs v3/v4 streaming speech requires dialogue options.") }
-            let voices = dialogue?["voices"]?.arrayValue?.compactMap(\.stringValue) ?? []
-            if modelID == "eleven_v3_conversational", voices.count != 1 { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue.voices", message: "eleven_v3_conversational requires exactly one voice.") }
-            let voice = request.voice ?? voices.first ?? "21m00Tcm4TlvDq8ikWAM"
-            if dialogue != nil, !voices.contains(voice) { throw AIError.invalidArgument(argument: "voice", message: "The streaming voice must be listed in dialogue.voices.") }
-            let locators = options["pronunciationDictionaryLocators"]?.arrayValue
-            if locators?.contains(where: { $0["versionId"]?.stringValue?.isEmpty != false }) == true {
-                throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.pronunciationDictionaryLocators", message: "Streaming speech requires a versionId for every pronunciation dictionary.")
+            if dialogue != nil && !dialogueModel {
+                throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue", message: "ElevenLabs streaming dialogue requires an eleven_v3 or eleven_v4 model; \(modelID) is not one.")
             }
+            if dialogueModel && dialogue == nil {
+                throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue", message: "The ElevenLabs text-to-speech WebSocket does not serve \(modelID). Set providerOptions.elevenlabs.dialogue to stream it as dialogue.")
+            }
+            let voices = dialogue?["voices"]?.arrayValue?.compactMap(\.stringValue) ?? []
+            if dialogue != nil, modelID == "eleven_v3_conversational", voices.count != 1 {
+                throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.dialogue.voices", message: "eleven_v3_conversational supports exactly one dialogue voice; received \(voices.count).")
+            }
+            // The WebSocket API rejects locators without a version, unlike HTTP.
+            let locators = options["pronunciationDictionaryLocators"]?.arrayValue
+            if let unversioned = locators?.first(where: { $0["versionId"]?.stringValue?.isEmpty != false }) {
+                throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.pronunciationDictionaryLocators", message: "Streaming speech requires a versionId for pronunciation dictionary \"\(unversioned["pronunciationDictionaryId"]?.stringValue ?? "")\".")
+            }
+            let warnings = elevenLabsStreamWarnings(request, options: options, streaming: streaming, dialogue: dialogue != nil)
             let output = try streaming["outputFormat"]?.stringValue ?? elevenLabsStreamOutputFormat(request.outputFormat)
+            let voice = request.voice ?? voices.first ?? "21m00Tcm4TlvDq8ikWAM"
             let path = dialogue != nil ? "/v1/text-to-dialogue/stream-input" : "/v1/text-to-speech/\(encodePathSegment(voice))/stream-input"
             guard var url = URLComponents(string: config.baseURL + path) else { throw AIError.invalidURL(config.baseURL) }
             if url.scheme == "https" { url.scheme = "wss" } else if url.scheme == "http" { url.scheme = "ws" }
-            var query: [String: String] = ["model_id": modelID, "output_format": output]
-            query["language_code"] = request.language ?? options["languageCode"]?.stringValue
-            for (key, value) in [("enable_logging", options["enableLogging"]), ("sync_alignment", streaming["syncAlignment"]),
-                                  ("apply_text_normalization", options["applyTextNormalization"]), ("seed", options["seed"])] { if let value { query[key] = jsonScalarString(value) } }
-            if dialogue == nil {
-                for (key, value) in [("inactivity_timeout", streaming["inactivityTimeout"]), ("auto_mode", streaming["autoMode"]), ("enable_ssml_parsing", streaming["enableSsmlParsing"])] { if let value { query[key] = jsonScalarString(value) } }
+            // Upstream sets search params in this order and skips nullish values.
+            let queryValues: [(String, JSONValue?)] = [
+                ("model_id", .string(modelID)), ("output_format", .string(output)),
+                ("language_code", (request.language ?? options["languageCode"]?.stringValue).map(JSONValue.string)),
+                ("enable_logging", options["enableLogging"]),
+                ("inactivity_timeout", dialogue == nil ? streaming["inactivityTimeout"] : nil),
+                ("sync_alignment", streaming["syncAlignment"]),
+                ("auto_mode", dialogue == nil ? streaming["autoMode"] : nil),
+                ("apply_text_normalization", options["applyTextNormalization"]),
+                ("seed", options["seed"]),
+                ("enable_ssml_parsing", dialogue == nil ? streaming["enableSsmlParsing"] : nil)
+            ]
+            url.percentEncodedQueryItems = queryValues.compactMap { key, value in
+                value.flatMap(jsonScalarString).map { URLQueryItem(name: key, value: urlQueryEncode($0)) }
             }
-            url.queryItems = query.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
             guard let socketURL = url.url else { throw AIError.invalidURL(config.baseURL) }
+            if dialogue != nil, let selected = request.voice, !voices.contains(selected) {
+                throw AIError.invalidArgument(argument: "voice", message: "ElevenLabs streaming dialogue voice \"\(selected)\" is not listed in providerOptions.elevenlabs.dialogue.voices.")
+            }
             let voiceSettings = options["voiceSettings"]?.objectValue ?? [:]
             var initial: [String: JSONValue] = [:]
             if let locators { initial["pronunciation_dictionary_locators"] = elevenLabsPronunciationLocators(.array(locators)) }
             if let dialogue {
                 initial["voices"] = dialogue["voices"]
-                initial["voice_settings"] = dialogue["voiceSettings"]
+                if let stability = dialogue["voiceSettings"]?["stability"], stability != .null {
+                    initial["voice_settings"] = .object(["stability": stability])
+                }
             } else {
                 initial["text"] = " "
                 var settings = elevenLabsVoiceSettings(.object(voiceSettings)).objectValue ?? [:]
@@ -62,15 +81,6 @@ extension ElevenLabsSpeechModel {
             try request.abortSignal?.throwIfAborted()
             let connection = try await webSocketTransport.connect(.init(url: socketURL, headers: headers, abortSignal: request.abortSignal))
             let state = ElevenSpeechState(dialogue: dialogue != nil, incremental: modelID.hasPrefix("eleven_v4"), voice: voice, voices: voices)
-            var warnings: [AIWarning] = []
-            if request.instructions != nil { warnings.append(AIWarning(type: "unsupported", feature: "instructions", message: "ElevenLabs streaming speech ignores instructions.")) }
-            let ignored = ["applyLanguageTextNormalization", "withTimestamps", "inputs", "nextRequestIds", "nextText", "previousRequestIds", "previousText", "musicLengthMs", "forceInstrumental", "compositionPlan", "durationSeconds", "promptInfluence", "loop"]
-            for key in ignored where options[key] != nil { warnings.append(elevenLabsIgnoredWarning(key)) }
-            if dialogue != nil {
-                if request.speed != nil { warnings.append(AIWarning(type: "unsupported", feature: "speed", message: "Streaming dialogue ignores speed.")) }
-                if options["voiceSettings"] != nil { warnings.append(elevenLabsIgnoredWarning("voiceSettings")) }
-                for key in ["autoMode", "chunkLengthSchedule", "enableSsmlParsing", "inactivityTimeout"] where streaming[key] != nil { warnings.append(elevenLabsIgnoredWarning("streaming." + key)) }
-            }
             let format = elevenLabsAudioFormat(output)
             let includeRaw = request.includeRawChunks
             let keepalive = dialogue != nil || streaming["inactivityTimeout"] == nil
@@ -79,11 +89,44 @@ extension ElevenLabsSpeechModel {
                                               keepaliveFrame: keepalive ? (dialogue != nil ? .object(["keep_alive": true]) : .object(["text": " "])) : nil,
                                               decode: { text in try state.decode(text, format: format, raw: includeRaw) }, inputPump: { session in
                 try await state.sendText(request.text, session: session)
-            })
+            }, connectionError: elevenLabsStreamConnectionError)
             return .init(stream: session.makeStream(), requestMetadata: .init(body: .object(["url": .string(socketURL.absoluteString), "initMessage": reportedInitial])),
                          responseMetadata: .init(timestamp: Date(), modelID: modelID), cancel: { session.cancel() })
         } catch { request.text.cancelFromConsumer(); throw error }
     }
+}
+
+/// Upstream reports early socket closes as "ElevenLabs speech stream closed before completion (...)".
+private func elevenLabsStreamConnectionError(_ error: any Error) -> any Error {
+    guard let speechError = error as? AIStreamingSpeechError, speechError.provider == "speech",
+          speechError.message.hasPrefix("Speech stream closed before completion") else { return error }
+    return AIStreamingSpeechError(provider: "elevenlabs", message: "ElevenLabs speech stream" + speechError.message.dropFirst("Speech stream".count), rawValue: speechError.rawValue)
+}
+
+/// Upstream `getStreamWarnings`.
+private func elevenLabsStreamWarnings(_ request: StreamingSpeechRequest, options: [String: JSONValue], streaming: [String: JSONValue], dialogue: Bool) -> [AIWarning] {
+    var warnings: [AIWarning] = []
+    if request.instructions != nil {
+        warnings.append(AIWarning(type: "unsupported", feature: "instructions", message: "ElevenLabs speech models do not support instructions. Instructions parameter was ignored."))
+    }
+    // HTTP-only options: neither WebSocket protocol carries them.
+    let httpOnly = ["applyLanguageTextNormalization", "withTimestamps", "inputs", "nextRequestIds", "nextText", "previousRequestIds", "previousText"]
+        + elevenLabsMusicOnlyOptions + elevenLabsSoundEffectsOnlyOptions
+    for key in httpOnly where options[key] != nil {
+        warnings.append(AIWarning(type: "unsupported", feature: "providerOptions.elevenlabs.\(key)", message: "ElevenLabs streaming speech does not support \(key)."))
+    }
+    if dialogue {
+        var ignored: [String] = []
+        if request.speed != nil { ignored.append("speed") }
+        if options["voiceSettings"] != nil { ignored.append("providerOptions.elevenlabs.voiceSettings") }
+        for key in ["autoMode", "chunkLengthSchedule", "enableSsmlParsing", "inactivityTimeout"] where streaming[key] != nil {
+            ignored.append("providerOptions.elevenlabs.streaming.\(key)")
+        }
+        for feature in ignored {
+            warnings.append(AIWarning(type: "unsupported", feature: feature, message: "ElevenLabs streaming dialogue does not support \(feature); it was ignored."))
+        }
+    }
+    return warnings
 }
 
 
@@ -101,14 +144,22 @@ private final class ElevenSpeechState: @unchecked Sendable {
             if !dialogue { try await session.send(.object(["text": .string(text)])); return }
             let turn = previousVoice != nil && (previousVoice != voice || newTurn)
             previousVoice = voice
-            let part: JSONValue = .object(["text": .string(text), "voice_id": .string(voice), "new_turn": turn ? .bool(true) : nil])
+            // Upstream spreads `newTurn && { new_turn: true }`: the key is omitted otherwise.
+            var fields: [String: JSONValue] = ["text": .string(text), "voice_id": .string(voice)]
+            if turn { fields["new_turn"] = .bool(true) }
+            let part: JSONValue = .object(fields)
             if incremental { try await session.send(.object(["inputs": .array([part])])) } else { buffered.append(part) }
         }
         for try await part in input {
             let selected = part.voice ?? voice
-            guard dialogue ? voices.contains(selected) : selected == voice else { throw AIError.invalidArgument(argument: "text", message: "The requested text-part voice is unavailable on this speech stream.") }
+            if dialogue, !voices.contains(selected) {
+                throw AIError.invalidArgument(argument: "text", message: "Dialogue text part voice \"\(selected)\" is not listed in providerOptions.elevenlabs.dialogue.voices.")
+            }
+            if !dialogue, selected != voice {
+                throw AIError.invalidArgument(argument: "text", message: "The ElevenLabs text-to-speech WebSocket speaks a single voice per stream (\"\(voice)\"); a text part requested \"\(selected)\". Use an eleven_v3 or eleven_v4 model with dialogue options for several voices.")
+            }
             let rawTurn = part.providerOptions["elevenlabs"]?["newTurn"]
-            if let rawTurn, rawTurn != .null, rawTurn.boolValue == nil { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.newTurn", message: "newTurn must be a boolean.") }
+            if let rawTurn, rawTurn != .null, rawTurn.boolValue == nil { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.newTurn", message: "providerOptions.elevenlabs.newTurn must be a boolean.") }
             let newTurn = rawTurn?.boolValue == true
             if selected != heldVoice || newTurn { try await emit(held, voice: heldVoice, newTurn: heldTurn); held = ""; heldTurn = newTurn }
             heldVoice = selected
@@ -125,28 +176,50 @@ private final class ElevenSpeechState: @unchecked Sendable {
     func decode(_ text: String, format: AIStreamingAudioFormat, raw: Bool) throws -> [StreamingSpeechPart] {
         guard let value = try? secureJSONParse(text), value.objectValue != nil else { return [] }
         var parts: [StreamingSpeechPart] = raw ? [.raw(value)] : []
-        if let error = value["error"], error != .null {
-            throw AIStreamingSpeechError(provider: "elevenlabs", message: "ElevenLabs speech stream error: " + (value["message"]?.stringValue ?? error.stringValue ?? String(describing: error)), rawValue: value)
-        }
-        if let message = value["message"]?.stringValue, value["isFinal"]?.boolValue != true, value["audio"]?.stringValue == nil {
-            throw AIStreamingSpeechError(provider: "elevenlabs", message: "ElevenLabs speech stream error: " + message, rawValue: value)
+        // Upstream getErrorText; the TTS socket ignores errors on audio frames.
+        if let error = elevenLabsStreamErrorText(value), dialogue || value["audio"]?.stringValue == nil {
+            throw AIStreamingSpeechError(provider: "elevenlabs", message: "ElevenLabs speech stream error: " + error, rawValue: value)
         }
         var metadata: [String: JSONValue] = [:]
-        if let alignment = value["alignment"], alignment != .null {
-            if dialogue {
-                metadata["alignment"] = .object(["chars": alignment["chars"], "charStartTimesMs": alignment["char_start_times_ms"], "charDurationsMs": alignment["char_durations_ms"]])
-            } else { metadata["alignment"] = alignment }
+        let isFinal: Bool
+        let finalTurn: Bool
+        if dialogue {
+            // Dialogue alignment is snake_case on the wire; expose the camelCase shape.
+            if let alignment = value["alignment"]?.objectValue {
+                var camel: [String: JSONValue] = [:]
+                for (wire, key) in [("chars", "chars"), ("char_start_times_ms", "charStartTimesMs"), ("char_durations_ms", "charDurationsMs")] {
+                    if let item = alignment[wire], item != .null { camel[key] = item }
+                }
+                metadata["alignment"] = .object(camel)
+            }
+            finalTurn = value["is_final_audio_for_turn"]?.boolValue == true
+            if finalTurn { metadata["isFinalAudioForTurn"] = .bool(true) }
+            isFinal = value["is_final"]?.boolValue == true
+        } else {
+            if let alignment = value["alignment"], alignment != .null { metadata["alignment"] = alignment }
+            if let alignment = value["normalizedAlignment"], alignment != .null { metadata["normalizedAlignment"] = alignment }
+            finalTurn = false
+            isFinal = value["isFinal"]?.boolValue == true || value["is_final"]?.boolValue == true
         }
-        if let alignment = value["normalizedAlignment"], alignment != .null { metadata["normalizedAlignment"] = alignment }
-        let finalTurn = value["is_final_audio_for_turn"]?.boolValue == true
-        if finalTurn { metadata["isFinalAudioForTurn"] = .bool(true) }
+        let providerMetadata: [String: JSONValue] = metadata.isEmpty ? [:] : ["elevenlabs": .object(metadata)]
         if let encoded = value["audio"]?.stringValue, !encoded.isEmpty {
             guard let bytes = Data(base64Encoded: encoded) else { throw AIStreamingSpeechError(provider: "elevenlabs", message: "Invalid base64 speech audio.") }
-            parts.append(.audio(audio: bytes, audioFormat: format, providerMetadata: metadata.isEmpty ? [:] : ["elevenlabs": .object(metadata)]))
-        } else if finalTurn { parts.append(.audio(audio: Data(), audioFormat: format, providerMetadata: ["elevenlabs": .object(metadata)])) }
-        if value["isFinal"]?.boolValue == true || value["is_final"]?.boolValue == true { parts.append(.finish(usage: ["inputCharacters": .number(Double(lock.withLock { characters }))])) }
+            parts.append(.audio(audio: bytes, audioFormat: format, providerMetadata: providerMetadata))
+        } else if finalTurn {
+            parts.append(.audio(audio: Data(), audioFormat: format, providerMetadata: providerMetadata))
+        }
+        if isFinal { parts.append(.finish(usage: ["inputCharacters": .number(Double(lock.withLock { characters }))])) }
         return parts
     }
+}
+
+private func elevenLabsStreamErrorText(_ raw: JSONValue) -> String? {
+    let error = raw["error"].flatMap { $0 == .null ? nil : $0 }
+    let message = raw["message"]?.stringValue
+    if error == nil && (message == nil || raw["isFinal"]?.boolValue == true) { return nil }
+    if let message { return message }
+    if let text = error?.stringValue { return text }
+    return error.flatMap { try? String(decoding: encodeJSONBody($0), as: UTF8.self) } ?? ""
 }
 
 func elevenLabsCompleteWords(_ value: String) -> (send: String, hold: String) {
@@ -168,7 +241,10 @@ func elevenLabsStreamOutputFormat(_ format: AIStreamingAudioFormat?) throws -> S
     case "audio/opus", "audio/ogg": if rate == nil || rate == 48000 { return "opus_48000_64" }
     default: break
     }
-    throw AIError.invalidArgument(argument: "outputFormat", message: "Unsupported ElevenLabs streaming audio format; use streaming.outputFormat for a native format.")
+    // Mirrors JSON.stringify(format) (no escaped slashes, `type` before `rate`).
+    let escaped = format.mediaType.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+    let json = "{\"type\":\"\(escaped)\"" + (format.sampleRate.map { ",\"rate\":\($0)" } ?? "") + "}"
+    throw AIError.invalidArgument(argument: "outputFormat", message: "ElevenLabs streaming speech does not support the output format \(json). Use providerOptions.elevenlabs.streaming.outputFormat for a native ElevenLabs format.")
 }
 
 func elevenLabsAudioFormat(_ output: String) -> AIStreamingAudioFormat {
@@ -176,10 +252,6 @@ func elevenLabsAudioFormat(_ output: String) -> AIStreamingAudioFormat {
     let types = ["mp3": "audio/mpeg", "pcm": "audio/pcm", "ulaw": "audio/pcmu", "alaw": "audio/pcma", "opus": "audio/ogg", "wav": "audio/wav"]
     guard let type = pieces.first.flatMap({ types[String($0)] }) else { return .init(mediaType: "application/octet-stream") }
     return .init(mediaType: type, sampleRate: rate)
-}
-
-func elevenLabsIgnoredWarning(_ key: String) -> AIWarning {
-    .init(type: "unsupported", feature: "providerOptions.elevenlabs." + key, message: "ElevenLabs ignores \(key) for this speech operation.")
 }
 
 func elevenLabsValidateNewSpeechOption(_ key: String, _ value: JSONValue) throws -> JSONValue {
@@ -271,31 +343,37 @@ private func elevenLabsCompositionPlan(_ value: JSONValue) throws -> JSONValue {
     })])
 }
 
-func elevenLabsSpecialSpeech(model: ElevenLabsSpeechModel, request: SpeechRequest, options: [String: JSONValue]) async throws -> SpeechResult {
+func elevenLabsSpecialSpeech(model: ElevenLabsSpeechModel, request: SpeechRequest, options: [String: JSONValue], warnings initialWarnings: [AIWarning] = []) async throws -> SpeechResult {
     let music = model.modelID.hasPrefix("music_")
     let effects = model.modelID.hasPrefix("eleven_text_to_sound")
     let output = elevenLabsOutputFormat(request.format)
-    var query = ["output_format": output]
-    if let logging = options["enableLogging"]?.boolValue { query["enable_logging"] = String(logging) }
-    var warnings: [AIWarning] = []; var duration: Double?
+    var query: [(String, String)] = [("output_format", output)]
+    if let logging = options["enableLogging"]?.boolValue { query.append(("enable_logging", String(logging))) }
+    var warnings = initialWarnings; var duration: Double?
     var body: [String: JSONValue] = ["model_id": .string(model.modelID)]
     var path: String
     let withTimestamps = !music && !effects && options["withTimestamps"] == true
-    let ttsOnly = ["applyLanguageTextNormalization", "applyTextNormalization", "dialogue", "inputs", "languageCode", "nextRequestIds", "nextText", "previousRequestIds", "previousText", "pronunciationDictionaryLocators", "streaming", "voiceSettings"]
-    let musicOnly = ["compositionPlan", "forceInstrumental", "musicLengthMs"]
-    let soundOnly = ["durationSeconds", "loop", "promptInfluence"]
     if music || effects {
+        // Upstream getAudioGenerationArgs.
+        let label = music ? "music" : "sound effects"
         for (key, hasValue) in [("instructions", request.instructions != nil), ("language", request.language != nil), ("speed", request.speed != nil), ("voice", request.voice != nil)] where hasValue {
-            warnings.append(AIWarning(type: "unsupported", feature: key, message: "ElevenLabs audio generation ignores \(key)."))
+            warnings.append(AIWarning(type: "unsupported", feature: key, message: "ElevenLabs \(label) models do not support \(key); it was ignored."))
         }
-        for key in ttsOnly + (music ? soundOnly : musicOnly + ["seed", "withTimestamps"]) where options[key] != nil { warnings.append(elevenLabsIgnoredWarning(key)) }
+        let ignored = elevenLabsTextToSpeechOnlyOptions + (music ? elevenLabsSoundEffectsOnlyOptions : elevenLabsMusicOnlyOptions) + (music ? [] : ["seed", "withTimestamps"])
+        for key in ignored where options[key] != nil {
+            warnings.append(AIWarning(type: "unsupported", feature: "providerOptions.elevenlabs.\(key)", message: "ElevenLabs \(label) models do not support \(key); it was ignored."))
+        }
         if music {
             path = options["withTimestamps"] == true ? "/v1/music/detailed" : "/v1/music"
             if options["withTimestamps"] == true { body["with_timestamps"] = true }
             if let plan = options["compositionPlan"] {
-                guard options["musicLengthMs"] == nil, options["forceInstrumental"] == nil else { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs", message: "Music compositionPlan cannot be combined with musicLengthMs or forceInstrumental.") }
+                for key in ["forceInstrumental", "musicLengthMs"] where options[key] != nil {
+                    throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.\(key)", message: "ElevenLabs music \(key) cannot be combined with compositionPlan.")
+                }
                 body["composition_plan"] = plan
-                if !request.text.isEmpty { warnings.append(.init(type: "other", message: "ElevenLabs compositionPlan replaces the text prompt.")) }
+                if !request.text.isEmpty {
+                    warnings.append(.init(type: "other", message: "ElevenLabs music uses providerOptions.elevenlabs.compositionPlan; the text prompt was ignored."))
+                }
                 let parts = plan["sections"]?.arrayValue ?? plan["chunks"]?.arrayValue ?? []
                 let durations = parts.map { $0["duration_ms"]?.doubleValue ?? (($0["range"]?["end_ms"]?.doubleValue ?? 0) - ($0["range"]?["start_ms"]?.doubleValue ?? 0)) }
                 if !durations.isEmpty && durations.allSatisfy({ $0 > 0 }) { duration = durations.reduce(0, +) }
@@ -307,16 +385,29 @@ func elevenLabsSpecialSpeech(model: ElevenLabsSpeechModel, request: SpeechReques
             duration = options["durationSeconds"]?.doubleValue.map { $0 * 1000 }
         }
     } else {
-        guard model.modelID.hasPrefix("eleven_v3") || model.modelID.hasPrefix("eleven_v4") else { throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.inputs", message: "ElevenLabs dialogue requires an eleven_v3 or eleven_v4 model.") }
+        // Upstream getDialogueArgs; `initialWarnings` carries getArgs' warnings.
+        guard model.modelID.hasPrefix("eleven_v3") || model.modelID.hasPrefix("eleven_v4") else {
+            throw AIError.invalidArgument(argument: "providerOptions.elevenlabs.inputs", message: "ElevenLabs dialogue requires an eleven_v3 or eleven_v4 model; \(model.modelID) is not one.")
+        }
         path = "/v1/text-to-dialogue"
         let explicitInputs = options["inputs"]?.arrayValue
         body["inputs"] = explicitInputs.map { .array($0.map { .object(["text": $0["text"], "voice_id": $0["voiceId"]]) }) }
             ?? .array([["text": .string(request.text), "voice_id": .string(request.voice ?? "21m00Tcm4TlvDq8ikWAM")]])
-        if !request.text.isEmpty, explicitInputs != nil { warnings.append(.init(type: "other", message: "ElevenLabs dialogue inputs replace the text prompt.")) }
-        for (key, hasValue) in [("instructions", request.instructions != nil), ("speed", request.speed != nil), ("voice", explicitInputs != nil && request.voice != nil)] where hasValue { warnings.append(.init(type: "unsupported", feature: key, message: "ElevenLabs dialogue ignores \(key).")) }
-        for key in ["streaming", "dialogue", "applyLanguageTextNormalization"] + musicOnly + soundOnly where options[key] != nil { warnings.append(elevenLabsIgnoredWarning(key)) }
+        if !request.text.isEmpty, explicitInputs != nil {
+            warnings.append(.init(type: "other", message: "ElevenLabs dialogue uses providerOptions.elevenlabs.inputs; the text prompt was ignored."))
+        }
         let settings = options["voiceSettings"]?.objectValue ?? [:]
-        for key in ["style", "useSpeakerBoost"] where settings[key] != nil { warnings.append(elevenLabsIgnoredWarning("voiceSettings." + key)) }
+        let ignored: [(String, Bool)] = [
+            ("instructions", request.instructions != nil),
+            ("speed", request.speed != nil),
+            ("voice", explicitInputs != nil && request.voice != nil),
+            ("providerOptions.elevenlabs.applyLanguageTextNormalization", options["applyLanguageTextNormalization"] != nil),
+            ("providerOptions.elevenlabs.voiceSettings.style", settings["style"] != nil),
+            ("providerOptions.elevenlabs.voiceSettings.useSpeakerBoost", settings["useSpeakerBoost"] != nil)
+        ]
+        for (feature, hasValue) in ignored where hasValue {
+            warnings.append(.init(type: "unsupported", feature: feature, message: "ElevenLabs dialogue does not support \(feature); it was ignored."))
+        }
         let wireSettings: [String: JSONValue] = .init(uniqueKeysWithValues: [("stability", settings["stability"]), ("similarity", settings["similarityBoost"])].compactMap { key, value in value.map { (key, $0) } })
         if !wireSettings.isEmpty { body["settings"] = .object(wireSettings) }
         body["language_code"] = (request.language ?? options["languageCode"]?.stringValue).map(JSONValue.string)
@@ -324,7 +415,7 @@ func elevenLabsSpecialSpeech(model: ElevenLabsSpeechModel, request: SpeechReques
         if let locators = options["pronunciationDictionaryLocators"] { body["pronunciation_dictionary_locators"] = elevenLabsPronunciationLocators(locators) }
     }
     if withTimestamps { path += "/with-timestamps" }
-    let response = try await model.config.transport.send(model.config.request(path: path + "?" + queryString(query), modelID: model.modelID,
+    let response = try await model.config.transport.send(model.config.request(path: path + elevenLabsQuerySuffix(query), modelID: model.modelID,
                                                                              body: .object(body), headers: request.headers, abortSignal: request.abortSignal))
     guard (200..<300).contains(response.statusCode) else { throw elevenLabsHTTPStatusError(provider: model.providerID, response: response) }
     let decoded = try elevenLabsDecodeSpeechResponse(response, withTimestamps: withTimestamps, musicTimestamps: path == "/v1/music/detailed")
